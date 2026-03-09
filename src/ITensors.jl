@@ -155,4 +155,5 @@ include("deprecated.jl")
 include("argsdict/argsdict.jl")
 include("packagecompile/compile.jl")
 include("developer_tools.jl")
+include("external_storage.jl")
 end

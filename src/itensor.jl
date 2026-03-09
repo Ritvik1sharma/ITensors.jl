@@ -2030,6 +2030,8 @@ function show(io::IO, T::ITensor)
         # cases when printing arrays of ITensors (similar to
         # printing of MPS in ITensorMPS.jl).
         show(io, inds(T))
+        # elseif has_external_storage(T)
+        #     summary(io, T.data)
     else
         println(io, "ITensor ord=$(order(T))")
         show(io, MIME"text/plain"(), tensor(T))
