@@ -749,6 +749,10 @@ Perform a factorization of `A` into ITensors `L` and `R` such that `A ≈ L * R`
 
 For truncation arguments, see: [`svd`](@ref)
 """
+function _external_factorize(A::ITensor, Linds...; kwargs...)
+    error("factorize not implemented for external storage type $(typeof(get_external_storage(A)))")
+end
+
 function factorize(
         A::ITensor,
         Linds...;
@@ -769,6 +773,12 @@ function factorize(
         (singular_values!) = nothing,
         dir = nothing,
     )
+    if has_external_storage(A)
+        return _external_factorize(A, Linds...; mindim, maxdim, cutoff, ortho, tags, plev,
+                                   which_decomp, eigen_perturbation, svd_alg,
+                                   use_absolute_cutoff, use_relative_cutoff, min_blockdim,
+                                   singular_values!, dir)
+    end
     @debug_check checkflux(A)
     if !isnothing(eigen_perturbation)
         if !(isnothing(which_decomp) || which_decomp == "eigen")

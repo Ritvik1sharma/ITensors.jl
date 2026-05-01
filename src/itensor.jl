@@ -831,7 +831,7 @@ size(A::ITensor, d::Int) = size(tensor(A), d)
 
 _isemptyscalar(A::ITensor) = _isemptyscalar(tensor(A))
 _isemptyscalar(A::Tensor) = ndims(A) == 0 && isemptystorage(A) && eltype(A) === EmptyNumber
-NDTensors.iscu(A::ITensor) = NDTensors.iscu(tensor(A))
+NDTensors.iscu(A::ITensor) = has_external_storage(A) ? false : NDTensors.iscu(tensor(A))
 """
     dir(A::ITensor, i::Index)
 
@@ -1044,8 +1044,18 @@ lastindex(A::ITensor) = LastVal()
 
 Fill all values of the ITensor with the specified value.
 """
+function _external_fill!(T::ITensor, storage, x::Number)
+    error("fill! not implemented for external storage type $(typeof(storage))")
+end
+
+function _external_fill!(T::ITensor, x::Number)
+    return _external_fill!(T, get_external_storage(T), x)
+end
+
 function fill!(T::ITensor, x::Number)
-    # Use broadcasting `T .= x`?
+    if has_external_storage(T)
+        return _external_fill!(T, x)
+    end
     return settensor!(T, fill!!(tensor(T), x))
 end
 
@@ -1727,7 +1737,16 @@ end
 # ITensor Operations
 #
 
-similar(T::ITensor, args...)::ITensor = itensor(NDTensors.similar(tensor(T), args...))
+function _external_similar(T::ITensor, args...)
+    error("similar not implemented for external storage type $(typeof(get_external_storage(T)))")
+end
+
+function similar(T::ITensor, args...)::ITensor
+    if has_external_storage(T)
+        return _external_similar(T, args...)
+    end
+    return itensor(NDTensors.similar(tensor(T), args...))
+end
 
 function isapprox(A::ITensor, B::ITensor; kwargs...)
     if !hassameinds(A, B)
@@ -1759,6 +1778,9 @@ function dag(as::AliasStyle, T::Tensor{ElT, N}) where {ElT, N}
 end
 
 function dag(as::AliasStyle, T::ITensor)
+    if has_external_storage(T)
+        return dag(get_external_storage(T))
+    end
     return itensor(dag(as, tensor(T)))
 end
 
@@ -1916,8 +1938,23 @@ function _map!!(f::Function, R::Tensor, T1::Tensor, T2::Tensor)
     return permutedims!!(R, T2, perm, f)
 end
 
+# function _external_map!(f::Function, R::ITensor, A::ITensor)
+#     error("map! not implemented for external storage type $(typeof(get_external_storage(R)))")
+# end
+
+function _external_map!(f::Function, R::ITensor, A::ITensor)
+    return _external_map_storage!(f, get_external_storage(R), R, A)
+end
+
+function _external_map_storage!(f::Function, storage, R::ITensor, A::ITensor)
+    error("map! not implemented for external storage type $(typeof(storage))")
+end
+
 function map!(f::Function, R::ITensor, T1::ITensor, T2::ITensor)
     R !== T1 && error("`map!(f, R, T1, T2)` only supports `R === T1` right now")
+    if has_external_storage(R)
+        return _external_map!(f, R, T2)
+    end
     return settensor!(R, _map!!(f, tensor(R), tensor(T1), tensor(T2)))
 end
 
@@ -2030,6 +2067,8 @@ function show(io::IO, T::ITensor)
         # cases when printing arrays of ITensors (similar to
         # printing of MPS in ITensorMPS.jl).
         show(io, inds(T))
+        # elseif has_external_storage(T)
+        #     summary(io, T.data)
     else
         println(io, "ITensor ord=$(order(T))")
         show(io, MIME"text/plain"(), tensor(T))

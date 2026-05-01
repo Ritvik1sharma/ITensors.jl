@@ -57,11 +57,32 @@ B = random_itensor(k,i,j)
 C = A * B # inner product of A and B, all indices contracted
 ```
 """
+
+
 function (A::ITensor * B::ITensor)::ITensor
     return contract(A, B)
 end
 
 function contract(A::ITensor, B::ITensor)::ITensor
+    if has_external_storage(A) && has_external_storage(B)
+        dataA = get_external_storage(A)
+        dataB = get_external_storage(B)
+        dataC = _contract_external_storage(dataA, dataB)
+        # println("Both external output type ", typeof(dataC), " has external storage? ", has_external_storage(dataC))  # --- IGNORE ---
+        return dataC
+    elseif has_external_storage(A)
+        dataA = get_external_storage(A)
+        dataC = _contract_external_storage(dataA, B)
+        # println("A external output type ", typeof(dataC), " has external storage? ", has_external_storage(dataC))  # --- IGNORE ---
+        return dataC
+    elseif has_external_storage(B)
+        dataB = get_external_storage(B)
+        dataC = _contract_external_storage(A, dataB)
+        # println("B external output type ", typeof(dataC), " has external storage? ", has_external_storage(dataC))  # --- IGNORE ---
+        # error("stop here")
+        return dataC
+    end
+
     NA::Int = ndims(A)
     NB::Int = ndims(B)
     if NA == 0 && NB == 0
@@ -169,6 +190,7 @@ function contract!(C::ITensor, A::ITensor, B::ITensor, α::Number, β::Number = 
 end
 
 function _contract!!(C::Tensor, A::Tensor, B::Tensor)
+    println("_contract!! called")
     labelsCAB = compute_contraction_labels(inds(C), inds(A), inds(B))
     labelsC, labelsA, labelsB = labelsCAB
     CT = NDTensors.contract!!(C, labelsC, A, labelsA, B, labelsB)
@@ -178,6 +200,7 @@ end
 # This is necessary for now since not all types implement contract!!
 # with non-trivial α and β
 function contract!(C::ITensor, A::ITensor, B::ITensor)::ITensor
+    println("contract! called with settensor")
     return settensor!(C, _contract!!(tensor(C), tensor(A), tensor(B)))
 end
 
@@ -560,6 +583,7 @@ dangling indices to do "batched" vector-vector products, or
 sum over a batch of vector-vector products.
 """
 function product(A::ITensor, B::ITensor; apply_dag::Bool = false)
+    println("product function has been called")
     commonindsAB = commoninds(A, B; plev = 0)
     isempty(commonindsAB) && error("In product, must have common indices with prime level 0.")
     common_paired_indsA = filterinds(
@@ -609,6 +633,7 @@ end
 Product the ITensors pairwise.
 """
 function product(As::Vector{<:ITensor}, B::ITensor; kwargs...)
+    println("product with multiple ITensors called")
     AB = B
     for A in As
         AB = product(A, AB; kwargs...)
