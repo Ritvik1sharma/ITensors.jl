@@ -64,6 +64,13 @@ function show(io::IO, ::MIME"text/plain", es::ExternalStorage)
     end
 end
 
+function dim(es::ExternalStorage)
+    d = _dims(es)
+    d isa Integer && return Int(d)
+    d isa Tuple && return prod(Int, d)
+    return 1  # fallback: unknown payload
+end
+
 # module ITensors
 
 # """

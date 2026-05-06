@@ -6,10 +6,20 @@ function VectorInterface.add(a::ITensor, b::ITensor)
     return a + b
 end
 function VectorInterface.add!(a::ITensor, b::ITensor)
+    if ITensors.has_external_storage(a)
+        result = a + b
+        a.tensor = result.tensor
+        return a
+    end
     a .= a .+ b
     return a
 end
 function VectorInterface.add!!(a::ITensor, b::ITensor)
+    if ITensors.has_external_storage(a)
+        result = a + b
+        a.tensor = result.tensor
+        return a
+    end
     if promote_type(eltype(a), eltype(b)) <: eltype(a)
         VectorInterface.add!(a, b)
     else
@@ -22,10 +32,20 @@ function VectorInterface.add(a::ITensor, b::ITensor, α::Number)
     return a + b * α
 end
 function VectorInterface.add!(a::ITensor, b::ITensor, α::Number)
+    if ITensors.has_external_storage(a)
+        result = a + b * α
+        a.tensor = result.tensor
+        return a
+    end
     a .= a .+ b .* α
     return a
 end
 function VectorInterface.add!!(a::ITensor, b::ITensor, α::Number)
+    if ITensors.has_external_storage(a)
+        result = a + b * α
+        a.tensor = result.tensor
+        return a
+    end
     if promote_type(eltype(a), eltype(b), typeof(α)) <: eltype(a)
         VectorInterface.add!(a, b, α)
     else
@@ -38,10 +58,20 @@ function VectorInterface.add(a::ITensor, b::ITensor, α::Number, β::Number)
     return a * β + b * α
 end
 function VectorInterface.add!(a::ITensor, b::ITensor, α::Number, β::Number)
+    if ITensors.has_external_storage(a)
+        result = a * β + b * α
+        a.tensor = result.tensor
+        return a
+    end
     a .= a .* β .+ b .* α
     return a
 end
 function VectorInterface.add!!(a::ITensor, b::ITensor, α::Number, β::Number)
+    if ITensors.has_external_storage(a)
+        result = a * β + b * α
+        a.tensor = result.tensor
+        return a
+    end
     if promote_type(eltype(a), eltype(b), typeof(α), typeof(β)) <: eltype(a)
         VectorInterface.add!(a, b, α, β)
     else
