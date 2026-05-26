@@ -71,6 +71,9 @@ function dim(es::ExternalStorage)
     return 1  # fallback: unknown payload
 end
 
+# _isemptyscalar(A::ITensor{<:ITensors.ExternalStorage{<:SparseBackends.WrappedBlockSparse}}) = false
+
+
 # module ITensors
 
 # """
