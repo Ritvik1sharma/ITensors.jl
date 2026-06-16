@@ -136,7 +136,11 @@ ITensor(T::ITensor) = copy(T)
 Like the `ITensor` constructor, but with attempt to make a view
 of the input data when possible.
 """
-itensor(args...; kwargs...)::ITensor = ITensor(AllowAlias(), args...; kwargs...)
+function itensor(args...; kwargs...)
+    return ITensor(AllowAlias(), args...; kwargs...)
+end
+
+# itensor(args...; kwargs...)::ITensor = ITensor(AllowAlias(), args...; kwargs...)
 
 ITensor(::AliasStyle, args...; kwargs...)::ITensor = error(
     "ITensor constructor with input arguments of types `$(typeof.(args))` not defined."
@@ -664,7 +668,12 @@ random_itensor() = random_itensor(Random.default_rng())
 # To fix ambiguity errors with QN version
 random_itensor(rng::AbstractRNG) = random_itensor(rng, Float64, ())
 
-copy(T::ITensor)::ITensor = itensor(copy(tensor(T)))
+
+function Base.copy(T::ITensor)
+    has_external_storage(T) && return _itensor_from_external_storage(copy(get_external_storage(T)))
+    return itensor(copy(tensor(T)))
+end
+# copy(T::ITensor)::ITensor = itensor(copy(tensor(T)))
 zero(T::ITensor)::ITensor = itensor(zero(tensor(T)))
 
 #
@@ -1845,18 +1854,27 @@ function (A::ITensor + B::ITensor)
     return itensor(_add(tensor(A), tensor(B)))
 end
 
-# TODO: move the order-0 EmptyStorage ITensor special to NDTensors
-function (A::ITensor - B::ITensor)
+function _subtract(A::Tensor, B::Tensor)
     if _isemptyscalar(A) && ndims(B) > 0
-        return -B
+        return itensor(-B)
     elseif _isemptyscalar(B) && ndims(A) > 0
-        return A
+        return itensor(A)
     end
     ndims(A) != ndims(B) &&
         throw(DimensionMismatch("cannot subtract ITensors with different numbers of indices"))
-    C = copy(A)
-    C .-= B
-    return C
+    itA = itensor(A)
+    itB = itensor(B)
+    itC = copy(itA)
+    itC .-= itB
+    return itC
+end
+
+# TODO: move the order-0 EmptyStorage ITensor special to NDTensors
+# Routes through `_subtract` (symmetric to `+`/`_add`) so external-storage
+# payloads (e.g. SparseBackends aliased tensors) can override subtraction the
+# same way they override `_add`.
+function (A::ITensor - B::ITensor)
+    return itensor(_subtract(tensor(A), tensor(B)))
 end
 
 real(T::ITensor)::ITensor = itensor(real(tensor(T)))
