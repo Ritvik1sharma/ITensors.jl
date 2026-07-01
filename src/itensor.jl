@@ -1899,7 +1899,21 @@ mul!(C::ITensor, A::ITensor, B::ITensor, args...)::ITensor = contract!(C, A, B, 
 dot(A::ITensor, B::ITensor) = (dag(A) * B)[]
 
 inner(y::ITensor, A::ITensor, x::ITensor) = (dag(y) * A * x)[]
-inner(y::ITensor, x::ITensor) = (dag(y) * x)[]
+# Optional fast-path slot for ⟨y|x⟩, registered by a backend at load (e.g.
+# SparseBackends installs a position-wise aliased dot to avoid the full dag(y)*x
+# contraction for key-aligned aliased operands — the Lanczos `wrapped×wrapped`
+# dots). Mutating this Ref's contents is a runtime op (no method overwrite), so a
+# backend can install it from __init__ without a precompile conflict. The hook
+# returns the scalar, or `nothing` to fall through to the standard contraction.
+const _INNER_FASTPATH = Ref{Any}(nothing)
+function inner(y::ITensor, x::ITensor)
+  f = _INNER_FASTPATH[]
+  if f !== nothing
+    r = f(y, x)
+    r !== nothing && return r
+  end
+  return (dag(y) * x)[]
+end
 
 #
 # In-place operations
