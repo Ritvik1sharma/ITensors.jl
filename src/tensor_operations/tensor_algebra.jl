@@ -59,25 +59,32 @@ C = A * B # inner product of A and B, all indices contracted
 """
 
 
-function (A::ITensor * B::ITensor)::ITensor
-    return contract(A, B)
+function Base.:*(A::ITensor, B::ITensor; kwargs...)::ITensor
+    return contract(A, B; kwargs...)
 end
 
-function contract(A::ITensor, B::ITensor)::ITensor
+# `kwargs...` (e.g. `preserve_bs_output=true`) are forwarded ONLY to the
+# external-storage contraction hook (SparseBackends) — the branch that can build
+# an aliased/block-sparse output. The plain dense `_contract` path below ignores
+# them (they are meaningless for a dense array), so 2-arg dense contraction is
+# byte-identical to before. This lets callers request e.g. an aliased-preserving
+# 2-site contraction via `A * B; preserve_bs_output=true` instead of reaching
+# into `SparseBackends.wrapped_contract_aliased` directly.
+function contract(A::ITensor, B::ITensor; kwargs...)::ITensor
     if has_external_storage(A) && has_external_storage(B)
         dataA = get_external_storage(A)
         dataB = get_external_storage(B)
-        dataC = _contract_external_storage(dataA, dataB)
+        dataC = _contract_external_storage(dataA, dataB; kwargs...)
         # println("Both external output type ", typeof(dataC), " has external storage? ", has_external_storage(dataC))  # --- IGNORE ---
         return dataC
     elseif has_external_storage(A)
         dataA = get_external_storage(A)
-        dataC = _contract_external_storage(dataA, B)
+        dataC = _contract_external_storage(dataA, B; kwargs...)
         # println("A external output type ", typeof(dataC), " has external storage? ", has_external_storage(dataC))  # --- IGNORE ---
         return dataC
     elseif has_external_storage(B)
         dataB = get_external_storage(B)
-        dataC = _contract_external_storage(A, dataB)
+        dataC = _contract_external_storage(A, dataB; kwargs...)
         # println("B external output type ", typeof(dataC), " has external storage? ", has_external_storage(dataC))  # --- IGNORE ---
         # error("stop here")
         return dataC
