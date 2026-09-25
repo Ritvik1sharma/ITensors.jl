@@ -590,7 +590,7 @@ dangling indices to do "batched" vector-vector products, or
 sum over a batch of vector-vector products.
 """
 function product(A::ITensor, B::ITensor; apply_dag::Bool = false)
-    println("product function has been called")
+    # println("product function has been called")   # debug tracer; fires per call
     commonindsAB = commoninds(A, B; plev = 0)
     isempty(commonindsAB) && error("In product, must have common indices with prime level 0.")
     common_paired_indsA = filterinds(
