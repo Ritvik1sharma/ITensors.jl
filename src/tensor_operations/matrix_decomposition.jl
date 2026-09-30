@@ -750,7 +750,12 @@ Perform a factorization of `A` into ITensors `L` and `R` such that `A ≈ L * R`
 For truncation arguments, see: [`svd`](@ref)
 """
 function _external_factorize(A::ITensor, Linds...; kwargs...)
-    error("factorize not implemented for external storage type $(typeof(get_external_storage(A)))")
+    return _external_factorize_storage(get_external_storage(A), A, Linds...; kwargs...)
+end
+
+# Backends add methods on their storage type (ITensor carries no storage type parameter).
+function _external_factorize_storage(storage, A::ITensor, Linds...; kwargs...)
+    error("factorize not implemented for external storage type $(typeof(storage))")
 end
 
 function factorize(
