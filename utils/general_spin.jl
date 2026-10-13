@@ -1,6 +1,6 @@
 # General spin-S site types for ITensors.
 #
-# ITensors ships only "S=1/2" and "S=1". This util adds arbitrary spin: it
+# ITensors ships "S=1/2", "S=1" and (this fork) "S=3/2". This util adds arbitrary spin: it
 # provides a general extractor for the spin-S operator matrices (Sz, S±, Sx, Sy,
 # Id) and a registrar that defines the `space` + `op` methods for ANY "S=..."
 # tag (e.g. "S=3/2", "S=2", "S=9/2"). Once Sx/Sy exist, ITensors' generic
@@ -67,14 +67,14 @@ end
 
 Define `ITensors.space` and the `Sz/S+/S-/Sx/Sy/Id` `op` methods for the site
 type named `tag` (parsed to dimension d = 2S+1), returning d. Skips the native
-ITensors spins ("S=1/2", "S=½", "S=1"). Idempotent (redefines on re-call).
+ITensors spins ("S=1/2", "S=½", "S=1", "S=3/2"). Idempotent (redefines on re-call).
 
 NOTE: the SiteType parameter is a `Tag`-encoded type, NOT `Symbol(tag)`, so the
 type is obtained via `typeof(SiteType(tag))` (constructing `SiteType{Symbol(tag)}`
 by hand does NOT match what `siteinds` dispatches on).
 """
 function register_spin_sitetype!(tag::AbstractString)
-    (tag in ("S=1/2", "S=½", "S=1")) && return spin_dim_from_tag(tag)   # keep ITensors' native defs
+    (tag in ("S=1/2", "S=½", "S=1", "S=3/2")) && return spin_dim_from_tag(tag)   # keep ITensors' native defs
     d  = spin_dim_from_tag(tag)
     M  = spin_operator_matrices(d)
     ST = typeof(SiteType(tag))
@@ -88,7 +88,7 @@ function register_spin_sitetype!(tag::AbstractString)
     return d
 end
 
-# Pre-register common higher spins (built-ins S=1/2, S=1 are left native).
+# Pre-register common higher spins (built-ins S=1/2, S=1, S=3/2 are left native).
 for _t in ("S=3/2", "S=2", "S=5/2", "S=3", "S=7/2", "S=4", "S=9/2", "S=5")
     register_spin_sitetype!(_t)
 end
