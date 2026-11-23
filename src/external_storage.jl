@@ -34,6 +34,25 @@ function _contract_external_storage(dataA, dataB; kwargs...)
   error("No external-storage contraction defined for $(typeof(dataA)) × $(typeof(dataB))")
 end
 
+"""
+Hook: external packages (SparseBackends) extend this. Returns the payload without its exactly-zero
+blocks (same inds); see `drop_zero_blocks`.
+"""
+function _drop_zero_blocks_external_storage(data)
+  error("No external-storage drop_zero_blocks defined for $(typeof(data))")
+end
+
+"""
+    drop_zero_blocks(T::ITensor) -> ITensor
+
+`T` without the blocks of its external storage that are exactly zero (exact: same tensor).
+Errors when `T` has no external storage.
+"""
+function drop_zero_blocks(T::ITensor)
+  has_external_storage(T) || error("drop_zero_blocks: the ITensor has no external storage")
+  return _itensor_from_external_storage(_drop_zero_blocks_external_storage(get_external_storage(T)))
+end
+
 function external_dag(T::ITensor)
   error("No external-storage dag defined for $(typeof(T.tensor))")
 end
